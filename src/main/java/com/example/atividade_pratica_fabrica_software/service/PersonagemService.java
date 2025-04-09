@@ -1,15 +1,20 @@
 package com.example.atividade_pratica_fabrica_software.service;
 
+import com.example.atividade_pratica_fabrica_software.controller.dto.ItemMagicoDto;
 import com.example.atividade_pratica_fabrica_software.domain.ItemMagico;
 import com.example.atividade_pratica_fabrica_software.domain.Personagem;
+import com.example.atividade_pratica_fabrica_software.domain.TipoItem;
+import com.example.atividade_pratica_fabrica_software.infra.entity.ItemMagicoEntity;
 import com.example.atividade_pratica_fabrica_software.infra.entity.PersonagemEntity;
 import com.example.atividade_pratica_fabrica_software.infra.repository.PersonagemRepository;
+import com.example.atividade_pratica_fabrica_software.mapper.ItemMapper;
 import com.example.atividade_pratica_fabrica_software.mapper.PersonagemMapper;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,9 +25,17 @@ import java.util.Optional;
 public class PersonagemService {
 
     private final PersonagemRepository repository;
+    private final ItemMagicoService itemMagicoService;
 
     public Personagem cadastrar(Personagem personagem) {
         this.validaPontosForcaDefesa(personagem);
+
+        List<ItemMagico> itensMagico = personagem.getItemMagicos().stream()
+                .map(itemMagico -> this.itemMagicoService.buscarPorId(itemMagico.getId()))
+                .toList();
+
+        personagem.setItemMagicos(itensMagico);
+
         this.validaAmuleto(personagem.getItemMagicos());
 
         PersonagemEntity personagemEntity = repository.save(PersonagemMapper.paraEntity(personagem));
@@ -56,6 +69,10 @@ public class PersonagemService {
     public Personagem atualizarNome(String novoNome, Long id) {
         Personagem personagem = this.buscarPorId(id);
 
+        if(!personagem.getClasse().getCodigo().equals(0)) {
+            throw new RuntimeException("Só pode alterar nome de personagens do tipo guerreiro");
+        }
+
         personagem.setNome(novoNome);
 
         PersonagemEntity personagemEntity = repository.save(PersonagemMapper.paraEntity(personagem));
@@ -68,6 +85,60 @@ public class PersonagemService {
         repository.deleteById(id);
     }
 
+    public List<ItemMagico> listaItens(Long idPersonagem) {
+        Personagem personagem = this.buscarPorId(idPersonagem);
+        return personagem.getItemMagicos();
+    }
+
+    public Personagem adicionarItem(ItemMagicoDto novoItem, Long id) {
+        Personagem personagem = this.buscarPorId(id);
+
+        if(novoItem.getTipo().getCodigo().equals(2)) {
+            Optional<ItemMagico> itemAmuleto = personagem.getItemMagicos()
+                    .stream()
+                    .filter(item -> item.getTipo().getCodigo().equals(2))
+                    .findFirst();
+
+            if(itemAmuleto.isPresent()) {
+                throw new RuntimeException("Personagem pode ter apenas 1 item do tipo Amuleto");
+            }
+        }
+
+        this.validaPontosForcaDefesa(personagem);
+
+        PersonagemEntity personagemEntity = repository.save(PersonagemMapper.paraEntity(personagem));
+
+        return PersonagemMapper.paraDomain(personagemEntity);
+    }
+
+    public Personagem removerItem(Long idItem, Long idPersonagem) {
+        Personagem personagem = this.buscarPorId(idPersonagem);
+        ItemMagico item = itemMagicoService.buscarPorId(idItem);
+
+        personagem.getItemMagicos().remove(item);
+
+        PersonagemEntity personagemEntity = repository.save(PersonagemMapper.paraEntity(personagem));
+
+        return PersonagemMapper.paraDomain(personagemEntity);
+    }
+
+    public ItemMagico buscarAmuleto(Long id) {
+        Personagem personagem = this.buscarPorId(id);
+
+        List<ItemMagico> itens = personagem.getItemMagicos();
+
+        Optional<ItemMagico> itemAmuleto = itens
+                .stream()
+                .filter(item -> item.getTipo().getCodigo().equals(2))
+                .findFirst();
+
+        if(itemAmuleto.isEmpty()) {
+            throw new RuntimeException("Personagem não possui amuleto.");
+        }
+
+        return itemAmuleto.get();
+    }
+
     private void validaPontosForcaDefesa(Personagem personagem) {
         Personagem personagemAjustado = this.ajustaFocaDefesa(personagem);
         int soma = personagemAjustado.getForca() + personagemAjustado.getDefesa();
@@ -76,8 +147,19 @@ public class PersonagemService {
             throw new RuntimeException("Pontos máximo por persoangem excedido.");
         }
     }
+
     private void validaAmuleto(List<ItemMagico> itensMagicosPersonagem) {
-        List<ItemMagico> itensOrdenados = itensMagicosPersonagem.stream().sorted(item -> item.getTipo().getCodigo()).toList();
+        List<ItemMagico> itensOrdenados = itensMagicosPersonagem
+                .stream()
+                .sorted(Comparator.comparingInt(item -> TipoItem.AMULETO.getCodigo()))
+                .toList();
+
+        ItemMagico primeiroElemento = itensOrdenados.get(0);
+        ItemMagico segundoElemento = itensOrdenados.get(1);
+
+        if(primeiroElemento.equals(segundoElemento)) {
+            throw new RuntimeException("Não pode ter mais de um amuleto.");
+        }
     }
 
     private Personagem ajustaFocaDefesa(Personagem personagem) {
