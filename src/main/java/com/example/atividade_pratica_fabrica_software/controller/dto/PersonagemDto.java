@@ -18,7 +18,7 @@ public class PersonagemDto {private Long id;
     private String nomeAventureiro;
     private Classe classe;
     private Integer level;
-    private List<ItemMagicoDto> itemMagicos;
+    private List<ItemMagicoDto> itensMagicos;
     private Integer forca;
     private Integer defesa;
 }

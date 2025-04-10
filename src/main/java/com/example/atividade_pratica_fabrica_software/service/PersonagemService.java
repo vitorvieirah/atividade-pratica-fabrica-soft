@@ -28,14 +28,13 @@ public class PersonagemService {
     private final ItemMagicoService itemMagicoService;
 
     public Personagem cadastrar(Personagem personagem) {
-        this.validaPontosForcaDefesa(personagem);
-
         List<ItemMagico> itensMagico = personagem.getItemMagicos().stream()
                 .map(itemMagico -> this.itemMagicoService.buscarPorId(itemMagico.getId()))
                 .toList();
 
         personagem.setItemMagicos(itensMagico);
 
+        this.validaPontosForcaDefesa(personagem);
         this.validaAmuleto(personagem.getItemMagicos());
 
         PersonagemEntity personagemEntity = repository.save(PersonagemMapper.paraEntity(personagem));
@@ -149,16 +148,19 @@ public class PersonagemService {
     }
 
     private void validaAmuleto(List<ItemMagico> itensMagicosPersonagem) {
-        List<ItemMagico> itensOrdenados = itensMagicosPersonagem
-                .stream()
-                .sorted(Comparator.comparingInt(item -> TipoItem.AMULETO.getCodigo()))
-                .toList();
 
-        ItemMagico primeiroElemento = itensOrdenados.get(0);
-        ItemMagico segundoElemento = itensOrdenados.get(1);
+        if(itensMagicosPersonagem.size() > 1) {
+            List<ItemMagico> itensOrdenados = itensMagicosPersonagem
+                    .stream()
+                    .sorted((item1, item2) -> Integer.compare(item2.getTipo().getCodigo(), item1.getTipo().getCodigo()))
+                    .toList();
 
-        if(primeiroElemento.equals(segundoElemento)) {
-            throw new RuntimeException("Não pode ter mais de um amuleto.");
+            ItemMagico primeiroElemento = itensOrdenados.get(0);
+            ItemMagico segundoElemento = itensOrdenados.get(1);
+
+            if (primeiroElemento.getTipo().getCodigo().equals(segundoElemento.getTipo().getCodigo())) {
+                throw new RuntimeException("Não pode ter mais de um amuleto.");
+            }
         }
     }
 
