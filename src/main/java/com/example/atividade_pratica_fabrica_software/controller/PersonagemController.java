@@ -43,16 +43,16 @@ public class PersonagemController {
     }
 
     @PutMapping("/remover-item/{id}")
-    public ResponseEntity<PersonagemDto> removerItem(@RequestBody Long idItem, @PathVariable("id") Long idPersonagem) {
-        Personagem personagemAlterado = service.removerItem(idItem, idPersonagem);
+    public ResponseEntity<PersonagemDto> removerItem(@RequestBody ItemMagico item, @PathVariable("id") Long idPersonagem) {
+        Personagem personagemAlterado = service.removerItem(item.getId(), idPersonagem);
         PersonagemDto resultado = PersonagemMapper.paraDto(personagemAlterado);
 
         return ResponseEntity.ok(resultado);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PersonagemDto> atualizarNomeGuerreiro(@RequestBody String novoNome, @PathVariable Long id) {
-        Personagem personagemAlterado = service.atualizarNome(novoNome, id);
+    public ResponseEntity<PersonagemDto> atualizarNomeGuerreiro(@RequestBody PersonagemDto novoNome, @PathVariable Long id) {
+        Personagem personagemAlterado = service.atualizarNome(novoNome.getNome(), id);
         PersonagemDto resultado = PersonagemMapper.paraDto(personagemAlterado);
 
         return ResponseEntity.ok(resultado);

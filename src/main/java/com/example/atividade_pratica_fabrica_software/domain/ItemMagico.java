@@ -1,14 +1,12 @@
 package com.example.atividade_pratica_fabrica_software.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @AllArgsConstructor
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class ItemMagico {
 
     private Long id;

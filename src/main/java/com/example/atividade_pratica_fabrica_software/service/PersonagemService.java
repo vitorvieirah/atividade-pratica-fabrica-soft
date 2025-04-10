@@ -3,18 +3,16 @@ package com.example.atividade_pratica_fabrica_software.service;
 import com.example.atividade_pratica_fabrica_software.controller.dto.ItemMagicoDto;
 import com.example.atividade_pratica_fabrica_software.domain.ItemMagico;
 import com.example.atividade_pratica_fabrica_software.domain.Personagem;
-import com.example.atividade_pratica_fabrica_software.domain.TipoItem;
-import com.example.atividade_pratica_fabrica_software.infra.entity.ItemMagicoEntity;
 import com.example.atividade_pratica_fabrica_software.infra.entity.PersonagemEntity;
 import com.example.atividade_pratica_fabrica_software.infra.repository.PersonagemRepository;
-import com.example.atividade_pratica_fabrica_software.mapper.ItemMapper;
 import com.example.atividade_pratica_fabrica_software.mapper.PersonagemMapper;
+import com.example.atividade_pratica_fabrica_software.service.exceptions.personagem.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,7 +55,7 @@ public class PersonagemService {
         Optional<PersonagemEntity> personagemEntity = repository.findById(id);
 
         if(personagemEntity.isEmpty()) {
-            throw new RuntimeException("Personagem não encontrado com id: " + id);
+            throw new PersonagemNaoEncontradoException(id);
         }
 
         Personagem resultado = PersonagemMapper.paraDomain(personagemEntity.get());
@@ -69,7 +67,7 @@ public class PersonagemService {
         Personagem personagem = this.buscarPorId(id);
 
         if(!personagem.getClasse().getCodigo().equals(0)) {
-            throw new RuntimeException("Só pode alterar nome de personagens do tipo guerreiro");
+            throw new AlteracaoNomePersonagemException();
         }
 
         personagem.setNome(novoNome);
@@ -91,17 +89,23 @@ public class PersonagemService {
 
     public Personagem adicionarItem(ItemMagicoDto novoItem, Long id) {
         Personagem personagem = this.buscarPorId(id);
+        ItemMagico item = this.itemMagicoService.buscarPorId(novoItem.getId());
 
-        if(novoItem.getTipo().getCodigo().equals(2)) {
+        if(item.getTipo().getCodigo().equals(2)) {
             Optional<ItemMagico> itemAmuleto = personagem.getItemMagicos()
                     .stream()
-                    .filter(item -> item.getTipo().getCodigo().equals(2))
+                    .filter(itemFilter -> itemFilter.getTipo().getCodigo().equals(2))
                     .findFirst();
 
             if(itemAmuleto.isPresent()) {
-                throw new RuntimeException("Personagem pode ter apenas 1 item do tipo Amuleto");
+                throw new AmuletoQuantidadeException();
             }
         }
+
+
+        personagem.setItemMagicos(new ArrayList<>(personagem.getItemMagicos()));
+
+        personagem.getItemMagicos().add(item);
 
         this.validaPontosForcaDefesa(personagem);
 
@@ -113,6 +117,8 @@ public class PersonagemService {
     public Personagem removerItem(Long idItem, Long idPersonagem) {
         Personagem personagem = this.buscarPorId(idPersonagem);
         ItemMagico item = itemMagicoService.buscarPorId(idItem);
+
+        personagem.setItemMagicos(new ArrayList<>(personagem.getItemMagicos()));
 
         personagem.getItemMagicos().remove(item);
 
@@ -132,7 +138,7 @@ public class PersonagemService {
                 .findFirst();
 
         if(itemAmuleto.isEmpty()) {
-            throw new RuntimeException("Personagem não possui amuleto.");
+            throw new AmuletoNaoEncontradoException();
         }
 
         return itemAmuleto.get();
@@ -143,7 +149,7 @@ public class PersonagemService {
         int soma = personagemAjustado.getForca() + personagemAjustado.getDefesa();
 
         if(soma > 10) {
-            throw new RuntimeException("Pontos máximo por persoangem excedido.");
+            throw new MaximoPontosException();
         }
     }
 
@@ -159,7 +165,7 @@ public class PersonagemService {
             ItemMagico segundoElemento = itensOrdenados.get(1);
 
             if (primeiroElemento.getTipo().getCodigo().equals(segundoElemento.getTipo().getCodigo())) {
-                throw new RuntimeException("Não pode ter mais de um amuleto.");
+                throw new AmuletoQuantidadeException();
             }
         }
     }

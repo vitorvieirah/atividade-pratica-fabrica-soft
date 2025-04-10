@@ -5,6 +5,8 @@ import com.example.atividade_pratica_fabrica_software.domain.Personagem;
 import com.example.atividade_pratica_fabrica_software.infra.entity.ItemMagicoEntity;
 import com.example.atividade_pratica_fabrica_software.infra.repository.ItemMagicoRepository;
 import com.example.atividade_pratica_fabrica_software.mapper.ItemMapper;
+import com.example.atividade_pratica_fabrica_software.service.exceptions.item.DefesaForcaException;
+import com.example.atividade_pratica_fabrica_software.service.exceptions.item.ItemNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,11 +30,11 @@ public class ItemMagicoService {
         }
 
         if(itemMagico.getDefesa().equals(0) && itemMagico.getForca().equals(0)) {
-            throw new RuntimeException("Não pode ter um item com 0 defesa e 0 força !");
+            throw new DefesaForcaException("Não pode ter um item com 0 defesa e 0 força !");
         }
 
         if(itemMagico.getForca() + itemMagico.getDefesa() > 10) {
-            throw new RuntimeException("Defesa e ataca de itens, juntos não podem ultrapassar 10 pontos.");
+            throw new DefesaForcaException("Defesa e força de itens, juntos não podem ultrapassar 10 pontos.");
         }
 
         ItemMagicoEntity itemMagicoEntity = repository.save(ItemMapper.paraEntity(itemMagico));
@@ -52,7 +54,7 @@ public class ItemMagicoService {
         Optional<ItemMagicoEntity> itemMagicoEntity = repository.findById(id);
 
         if(itemMagicoEntity.isEmpty()) {
-            throw new RuntimeException("Item não encontrado pelo id: " + id);
+            throw new ItemNaoEncontradoException(id);
         }
 
         return ItemMapper.paraDomain(itemMagicoEntity.get());
